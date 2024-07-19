@@ -11,7 +11,6 @@ MODEL_DICT = {
 
 OBJ_THRESH = 0.25
 NMS_THRESH = 0.45
-IMG_SIZE = (640, 640)
 
 CLASSES = ("person", "bicycle", "car","motorbike ","aeroplane ","bus ","train","truck ","boat","traffic light",
            "fire hydrant","stop sign ","parking meter","bench","bird","cat","dog ","horse ","sheep","cow","elephant",
@@ -165,14 +164,14 @@ if __name__ == "__main__":
     print(f"Loaded the {args.type} model from {args.weights}")
 
     cap = cv2.VideoCapture(args.input)
-    w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    IMG_SIZE = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))[::-1]
     fps = cap.get(cv2.CAP_PROP_FPS)
     print(f"Loaded the video from {args.input}")
 
     gst_out = ('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast '
                '! rtph264pay config-interval=1 pt=96 '
                f'! udpsink host={args.multicast_ip} port=5000 auto-multicast=true')
-    out = cv2.VideoWriter(gst_out, cv2.CAP_GSTREAMER, 0, fps, (w, h), True)
+    out = cv2.VideoWriter(gst_out, cv2.CAP_GSTREAMER, 0, fps, IMG_SIZE[::-1], True)
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -180,7 +179,7 @@ if __name__ == "__main__":
             break
     
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, IMG_SIZE)
+        img = cv2.resize(img, [640, 640])
         
         outputs = model.infer(img)
         boxes, classes, scores = post_process(outputs, anchors)
