@@ -4,6 +4,8 @@ import numpy as np
 from yolo_onnx import YOLOONNX
 from yolo_rknn import YOLORKNN
 from yolo_tflite import YOLOTFLite
+from time import time
+import os
 
 MODEL_DICT = {
     "onnx": YOLOONNX,
@@ -193,6 +195,8 @@ if __name__ == "__main__":
     fps = cap.get(cv2.CAP_PROP_FPS)
     print(f"Loaded the video from {args.input}")
 
+    fpses = []
+
     gst_out = ('appsrc ! videoconvert ! x264enc tune=zerolatency bitrate=500 speed-preset=superfast '
                '! rtph264pay config-interval=1 pt=96 '
                f'! udpsink host={args.multicast_ip} port=5000 auto-multicast=true')
@@ -202,17 +206,25 @@ if __name__ == "__main__":
         ret, frame = cap.read()
         if not ret:
             break
-    
+
+        start = time()
+
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, [640, 640])
         
         outputs = model.infer(img)
 
         boxes, classes, scores = post_process(outputs, anchors)
-        if len(boxes) != 0:
+        if boxes is not None and len(boxes) != 0:
             draw(frame, boxes, scores, classes)
 
+        end = time()
+        fps = round(1 / (end - start), 3)
+        fpses.append(fps)
+        cv2.putText(frame, f"FPS: {fps}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         out.write(frame)
 
+    with open(f"fps_log_{os.path.basename(args.weights)}.txt", "w") as f:
+        f.writelines([str(fps) + "\n" for fps in fpses])
     cap.release()
     out.release()
