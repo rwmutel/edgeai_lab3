@@ -3,10 +3,12 @@ import cv2
 import numpy as np
 from yolo_onnx import YOLOONNX
 from yolo_rknn import YOLORKNN
+from yolo_tflite import YOLOTFLite
 
 MODEL_DICT = {
     "onnx": YOLOONNX,
-    "rknn": YOLORKNN
+    "rknn": YOLORKNN,
+    "tflite": YOLOTFLite
 }
 
 OBJ_THRESH = 0.25
@@ -205,6 +207,7 @@ if __name__ == "__main__":
         img = cv2.resize(img, [640, 640])
         
         outputs = model.infer(img)
+
         boxes, classes, scores = post_process(outputs, anchors)
         if len(boxes) != 0:
             draw(frame, boxes, scores, classes)
